@@ -13,10 +13,6 @@ from app.database.session import get_session
 
 router = APIRouter(prefix="/tasks", tags=["Task"])
 
-@router.get("/")
-def get_task():
-    return {"massage":"getting task"}
-
 @router.post("/", response_model=CreatedTaskResponse)
 def create_task( payload : CreateTask , session : Session = Depends(get_session)) -> Task:
 
