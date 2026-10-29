@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError, DataError
 from sqlalchemy import select
 from uuid import uuid4
 
@@ -22,27 +23,51 @@ def create_task( payload : CreateTask , session : Session = Depends(get_session)
         task_status=payload.task_status,
     )
 
-    session.add(task)
-    session.commit()
-    session.refresh(task)
-
+    try:
+        session.add(task)
+        session.commit()
+        session.refresh(task)
+    except IntegrityError:
+        session.rollback()
+        raise "Database constrain vaolation"
+   
     return task
 
 @router.get("/{task_no}", response_model=CreatedTaskResponse)
 def read_task(task_title : str, session : Session = Depends(get_session)) -> Task:
     task = (session.execute(select(Task).where(Task.task_title == task_title))).scalar_one_or_none()
+
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task Not Found"
+        )
+
     return task
 
-
 @router.patch("/{task_no}", response_model=CreatedTaskResponse)
-def update_task(task_no : uuid4, update_payload : UpdateTaskTitleBody , session : Session = Depends(get_session)) -> Task:
-    task = (session.execute(select(Task).where(Task.id == task_no))).scalar_one_or_none()
+def update_task(task_title : str, update_payload : UpdateTaskTitleBody , session : Session = Depends(get_session)) -> Task:
+    task = (session.execute(select(Task).where(Task.task_title == task_title))).scalar_one_or_none()
 
-    task.task_body = update_payload.task_body
-    task.task_title = update_payload.task_title
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task Not Found"
+        )
     
-    session.commit()
-    session.refresh(task)
+    try:
+        task.task_body = update_payload.task_body
+        task.task_title = update_payload.task_title
+        task.task_status = update_payload.task_status
+        session.commit()
+        session.refresh(task)
+
+    except IntegrityError:
+        session.rollback()
+        raise "Database constrain violation"
+    except DataError:
+        session.rollback()
+        raise "Title character length hit the limmit"
 
     return task
 
