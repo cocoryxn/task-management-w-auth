@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import select
+from uuid import uuid4
 
 from app.modules.tasks.schemas import (
     CreateTask, 
@@ -18,16 +19,8 @@ def get_task():
 
 @router.post("/", response_model=CreatedTaskResponse)
 def create_task( payload : CreateTask , session : Session = Depends(get_session)) -> Task:
-    existing = (session.execute(select(Task).where(Task.task_no == payload.task_no))).scalar_one_or_none()
-
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="This task no. is already created"
-        )
 
     task = Task(
-        task_no=payload.task_no,
         task_title=payload.task_title,
         task_body=payload.task_body,
         task_status=payload.task_status,
@@ -40,14 +33,14 @@ def create_task( payload : CreateTask , session : Session = Depends(get_session)
     return task
 
 @router.get("/{task_no}", response_model=CreatedTaskResponse)
-def read_task(task_no : str, session : Session = Depends(get_session)) -> Task:
-    task = (session.execute(select(Task).where(Task.task_no == task_no))).scalar_one_or_none()
+def read_task(task_title : str, session : Session = Depends(get_session)) -> Task:
+    task = (session.execute(select(Task).where(Task.task_title == task_title))).scalar_one_or_none()
     return task
 
 
 @router.patch("/{task_no}", response_model=CreatedTaskResponse)
-def update_task(task_no : str, update_payload : UpdateTaskTitleBody , session : Session = Depends(get_session)) -> Task:
-    task = (session.execute(select(Task).where(Task.task_no == task_no))).scalar_one_or_none()
+def update_task(task_no : uuid4, update_payload : UpdateTaskTitleBody , session : Session = Depends(get_session)) -> Task:
+    task = (session.execute(select(Task).where(Task.id == task_no))).scalar_one_or_none()
 
     task.task_body = update_payload.task_body
     task.task_title = update_payload.task_title
@@ -58,8 +51,8 @@ def update_task(task_no : str, update_payload : UpdateTaskTitleBody , session : 
     return task
 
 @router.delete("/{task_no}")
-def delete_task(task_no : str, session : Session = Depends(get_session)):
-    task = (session.execute(select(Task).where(Task.task_no == task_no))).scalar_one_or_none()
+def delete_task(task_no : uuid4, session : Session = Depends(get_session)):
+    task = (session.execute(select(Task).where(Task.id == task_no))).scalar_one_or_none()
 
     if task is None:
         raise HTTPException(

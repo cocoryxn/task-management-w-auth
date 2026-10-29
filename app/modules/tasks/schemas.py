@@ -1,11 +1,9 @@
-from pydantic import BaseModel, Field, ConfigDict
-from datetime import datetime
+from pydantic import BaseModel, Field
 from uuid import UUID
 
 from app.modules.tasks.models import TaskStatus
 
 class CreateTask(BaseModel):
-    task_no : str
     task_title : str = Field(min_length=0, max_length=30, default="Untitled")
     task_body : str | None = None
     task_status : str = Field(default=TaskStatus.TODO)
@@ -15,7 +13,7 @@ class UpdateTaskTitleBody(BaseModel):
     task_body : str | None = None
 
 class CreatedTaskResponse(CreateTask):
-    # task_no : UUID
+    id : UUID
     # created_at : datetime
     # updated_at : datetime
     pass
