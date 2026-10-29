@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from app.modules.health.router import router as root
 from app.modules.tasks.routers import router as task
-from app.modules.users.routers import router as user
+from app.modules.auth.routers import router as auth
 
 app = FastAPI()
 
@@ -19,8 +19,8 @@ app.include_router(
     prefix="/api/v1"
 )
 
-# user Route
+# auth Route
 app.include_router(
-    user,
+    auth,
     prefix="/api/v1"
 )
